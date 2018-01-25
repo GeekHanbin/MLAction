@@ -1,5 +1,7 @@
 from numpy import *
 import operator
+import matplotlib
+import matplotlib.pyplot as plt
 
 
 def createdata():
@@ -32,9 +34,74 @@ def classify0(inX,dataSet,lables,k):
         # 分组计数
         classCount[voteLabel] = classCount.get(voteLabel , 0) + 1
     sortClassCount = sorted(classCount.items(),key=operator.itemgetter(1),reverse=True)
-    print(sortClassCount)
+    print(sortClassCount[0][0])
+    return sortClassCount[0][0]
 
 
+# change the file data to matrix
+def file2matrix(filename):
+    file = open(filename)
+    arrayLines = file.readlines()
+    numberOfLines = len(arrayLines)
+    # 生成以行为维度 3列的 0矩阵
+    returnMat = zeros((numberOfLines,3))
+    classLabelVector = []
+    index = 0
+    for line in arrayLines:
+        line = line.strip()
+        listFromLine = line.split("\t")
+        # 矩阵其实就是多维数组，下面是将returnMat第index位设置为listFromLine的数组
+        returnMat[index,:] = listFromLine[0:3]
+        classLabelVector.append(int(listFromLine[-1]))
+        index += 1
+    return returnMat,classLabelVector
 
-group = array([[1.0,1.1],[1.0,1.0],[0,0],[0,0.1]])
-classify0([1.0,1.2],group, ['A', 'A', 'B', 'B'],4)
+
+# 将数据展示
+def displayDataWithmatplotlib():
+    datingMat, dataLabels = file2matrix("datingTestSet2.txt")
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    print(datingMat[:, 1])
+    ax.scatter(datingMat[:, 1], datingMat[:, 2], 15 * array(dataLabels), 15 * array(dataLabels))
+    plt.show()
+
+
+# 数据归一化 newValue = (oldValue - min)/(max - min)
+def autoNorm(dataset):
+    '''
+    a = np.array([[1,5,3],[4,2,6]])
+    print(a.min()) #无参，所有中的最小值
+    print(a.min(0)) # axis=0; 每列的最小值
+    print(a.min(1)) # axis=1；每行的最小值
+    结果：
+    1
+    [1 2 3]
+    [1 2]
+    '''
+    minValues = dataset.min(0)
+    maxValues = dataset.max(0)
+    range = maxValues - minValues
+    normDataSet = zeros(shape(dataset))
+    # 取行的维度
+    m = dataset.shape[0]
+    normDataSet = dataset - tile(minValues,(m,1))
+    normDataSet = dataset / tile(range,(m,1))
+    return normDataSet,range,minValues
+
+def datingClassTest():
+    # 测试数据比率
+    testRate = 0.1
+    datingMat, dataLabels = file2matrix("datingTestSet2.txt")
+    normDataSet, ranges, minValues = autoNorm(datingMat)
+    m = normDataSet.shape[0]
+    numOfTestVect = int(m*testRate)
+    errorCount  = 0.0
+    for i in range(numOfTestVect):
+        classfierResult = classify0(normDataSet[i,:],normDataSet[numOfTestVect:m,:],dataLabels[numOfTestVect:m],3)
+        print("classfier result is :" + str(classfierResult))
+        if classfierResult != dataLabels[i]:
+            errorCount += 1.0
+    print("error rate is :" + str(errorCount/numOfTestVect))
+
+datingClassTest()
